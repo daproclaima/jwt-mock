@@ -1,14 +1,11 @@
 const express = require ('express')
 const dotenv = require('dotenv')
 const mongoose = require('mongoose')
-
-// Imports routes
-const postRoute = require('./routes/post')
-
+const router  = express.Router()
+const authRoute = require('./routes/auth')
 const app = express()
-const port = 3333
+const port = 4444
 dotenv.config()
-
 // connect to db
 mongoose.connect(process.env.DB_CONNECT, 
   {
@@ -21,6 +18,8 @@ mongoose.connect(process.env.DB_CONNECT,
 app.use(express.json())
 
 // Routes middleware
-app.use('/api/posts', postRoute)
+app.use('/api/user', authRoute, function (req, res) {
+  res.sendStatus(500)
+})
 
-app.listen(port, () => console.log(`Server up an and running at http://localhost:${port}`))
+app.listen(port, () => console.log(`JWT Server up an and running at http://localhost:${port}`))

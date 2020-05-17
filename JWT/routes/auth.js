@@ -1,9 +1,9 @@
 const router  = require('express').Router()
-const User = require('../model/User')
+const User = require('../../model/User')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
-
-const { registerValidation, loginValidation } = require('../routes/validation')
+const {generateAccessToken, generateRefreshToken} = require('../manageToken')
+const { registerValidation, loginValidation } = require('../../routes/validation')
 
 router.post('/register', async (req, res) => {
 
@@ -28,7 +28,7 @@ router.post('/register', async (req, res) => {
     password: hashedPassword
   })
   try {
-    const savedUser = await user.save()
+    await user.save()
     res.send({user: user._id})
   } catch (err) {
     console.log(err)
@@ -54,12 +54,37 @@ router.post('/login', async (req, res) => {
   }
 
   // Creates and assign a token
-  const token = jwt.sign({_id: user._id},process.env.TOKEN_SECRET )
-  res.header('auth-token', token).send(token)
+  // const token = jwt.sign({_id: user._id}, process.env.ACCESS_TOKEN_SECRET )
+  const accessToken = generateAccessToken({_id: user._id}, process.env.ACCESS_TOKEN_SECRET)
+  const refreshToken = generateRefreshToken({_id: user._id}, process.env.REFRESH_TOKEN_SECRET)
+
+  res.header({'auth-token': accessToken, 'refresh-token': refreshToken}).send({accessToken, refreshToken})
 
   // check if password is correct
 
 
 })
 
+router.post('/token', (req, res) => {
+  const refreshTokens = []
+  const refreshToken = req.body.token
+  if (refreshToken === null) {
+    return res.sendStatus(401)
+  }
+  if(!refreshTokens.includes(refreshToken)) {
+    return res.sendStatus(403)
+  }
+  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+    if (err) {
+      return res.sendStatus(403)
+    }
+    const accessToken = generateAccessToken({user_email: user.email})
+    res.json({accessToken: accessToken})
+  })
+})
+
+router.delete('/logout', (req,res) => {
+  refreshTokens.filter(token => token !== req.body.token)
+  res.sendStatus(204)
+})
 module.exports = router
